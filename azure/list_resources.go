@@ -1,4 +1,3 @@
-// azure/list_resources.go
 package azure
 
 import (
@@ -24,7 +23,6 @@ func ListAzureResources(subscriptionID string) {
 	}
 
 	pager := client.NewListPager(nil)
-
 	resourceCount := 0
 
 	for pager.More() {
@@ -32,9 +30,26 @@ func ListAzureResources(subscriptionID string) {
 		if err != nil {
 			log.Fatalf("Error retrieving resources: %v", err)
 		}
-		resourceCount += len(page.Value)
+
+		for _, res := range page.Value {
+			// Safely dereference pointers
+			name := "<no-name>"
+			if res.Name != nil {
+				name = *res.Name
+			}
+			resourceType := "<no-type>"
+			if res.Type != nil {
+				resourceType = *res.Type
+			}
+			location := "<no-location>"
+			if res.Location != nil {
+				location = *res.Location
+			}
+
+			fmt.Printf("🔸 Name: %-30s Type: %-45s Location: %s\n", name, resourceType, location)
+			resourceCount++
+		}
 	}
 
 	fmt.Printf("🔍 Total Azure Resources in Subscription %s: %d\n", subscriptionID, resourceCount)
 }
-
