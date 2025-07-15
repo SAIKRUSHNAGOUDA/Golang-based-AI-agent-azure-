@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Azure Resource Map</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    #cy { width: 100vw; height: 100vh; }
+  </style>
+  <script src="https://unpkg.com/cytoscape@3.24.0/dist/cytoscape.min.js"></script>
+</head>
+<body>
+  <div id="cy"></div>
+
+  <script>
+    async function fetchResources() {
+      const res = await fetch('/api/resources');
+      const data = await res.json();
+
+      const elements = data.map((res, index) => ({
+        data: {
+          id: 'n' + index,
+          label: `${res.name}\n${res.type}`,
+          location: res.location,
+        }
+      }));
+
+      // Optional: create region groupings
+      const edges = [];
+
+      cytoscape({
+        container: document.getElementById('cy'),
+        elements: [
+          ...elements,
+          ...edges
+        ],
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'background-color': '#0078D7',
+              'label': 'data(label)',
+              'text-valign': 'center',
+              'text-halign': 'center',
+              'color': '#fff',
+              'font-size': '10px',
+              'text-wrap': 'wrap'
+            }
+          },
+          {
+            selector: 'edge',
+            style: {
+              'width': 2,
+              'line-color': '#ccc',
+              'target-arrow-color': '#ccc',
+              'target-arrow-shape': 'triangle'
+            }
+          }
+        ],
+        layout: {
+          name: 'cose',
+          animate: true
+        }
+      });
+    }
+
+    fetchResources();
+  </script>
+</body>
+</html>
