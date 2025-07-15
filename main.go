@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"cloud-resource-mapper/azure"
+	"github.com/SAIKRUSHNAGOUDA/Golang-based-AI-agent-azure/azure"
 )
 
 func main() {
