@@ -9,121 +9,161 @@
       padding: 0;
       height: 100%;
       font-family: Arial, sans-serif;
+      background: #f7f9fc;
     }
+
     #cy {
       width: 100%;
-      height: calc(100% - 100px);
+      height: 70%;
+      border-bottom: 2px solid #ccc;
     }
-    #chat {
+
+    #chat-container {
       padding: 10px;
-      background: #f5f5f5;
-      position: fixed;
-      bottom: 0;
-      width: 100%;
       display: flex;
+      flex-direction: column;
       gap: 10px;
     }
+
+    #chat-box {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
     #question {
       flex: 1;
-      padding: 8px;
-    }
-    #answer {
       padding: 10px;
-      font-style: italic;
-      background: #eef;
-      margin-top: 5px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #ask-btn {
+      padding: 10px 16px;
+      background-color: #0078D7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #answer {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 4px;
+      min-height: 40px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      color: #333;
     }
   </style>
+
   <script src="https://unpkg.com/cytoscape@3.24.0/dist/cytoscape.min.js"></script>
 </head>
 <body>
 
   <div id="cy"></div>
 
-  <div id="chat">
-    <input id="question" type="text" placeholder="Ask about your Azure resources..." />
-    <button onclick="askAI()">Ask</button>
+  <div id="chat-container">
+    <div id="chat-box">
+      <input id="question" type="text" placeholder="Ask your cloud assistant..." />
+      <button id="ask-btn" onclick="askAI()">Ask</button>
+    </div>
+    <div id="answer">💬 AI responses will appear here.</div>
   </div>
-
-  <div id="answer"></div>
 
   <script>
     async function fetchResources() {
-      const res = await fetch('/api/resources');
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/resources');
+        const data = await res.json();
 
-      const elements = [];
-      const nodesMap = new Map();
+        const elements = [];
+        const nodesMap = new Map();
 
-      // 1. Create nodes
-      data.forEach((res, i) => {
-        const nodeId = 'n' + i;
-        nodesMap.set(res.name, nodeId);
-        elements.push({
-          data: {
-            id: nodeId,
-            label: `${res.name}\n(${res.type.split('/').pop()})`,
-            location: res.location,
-          }
-        });
-      });
-
-      // 2. Connect sequentially (mock edges)
-      for (let i = 1; i < elements.length; i++) {
-        elements.push({
-          data: {
-            id: `e${i}`,
-            source: elements[i - 1].data.id,
-            target: elements[i].data.id,
-          }
-        });
-      }
-
-      // 3. Render graph
-      cytoscape({
-        container: document.getElementById('cy'),
-        elements: elements,
-        style: [
-          {
-            selector: 'node',
-            style: {
-              'background-color': '#0078D7',
-              'label': 'data(label)',
-              'color': '#fff',
-              'text-valign': 'center',
-              'text-halign': 'center',
-              'font-size': '10px',
-              'text-wrap': 'wrap',
-              'text-max-width': '100px'
+        data.forEach((res, i) => {
+          const nodeId = 'n' + i;
+          nodesMap.set(res.name, nodeId);
+          elements.push({
+            data: {
+              id: nodeId,
+              label: `${res.name}\n(${res.type.split('/').pop()})`,
+              location: res.location,
             }
-          },
-          {
-            selector: 'edge',
-            style: {
-              'width': 2,
-              'line-color': '#aaa',
-              'target-arrow-color': '#aaa',
-              'target-arrow-shape': 'triangle'
+          });
+        });
+
+        for (let i = 1; i < elements.length; i++) {
+          elements.push({
+            data: {
+              id: `e${i}`,
+              source: elements[i - 1].data.id,
+              target: elements[i].data.id,
             }
-          }
-        ],
-        layout: {
-          name: 'cose',
-          animate: true,
-          padding: 50
+          });
         }
-      });
+
+        cytoscape({
+          container: document.getElementById('cy'),
+          elements: elements,
+          style: [
+            {
+              selector: 'node',
+              style: {
+                'background-color': '#0078D7',
+                'label': 'data(label)',
+                'color': '#fff',
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'font-size': '10px',
+                'text-wrap': 'wrap',
+                'text-max-width': '70px',
+                'width': 60,
+                'height': 60,
+              }
+            },
+            {
+              selector: 'edge',
+              style: {
+                'width': 2,
+                'line-color': '#bbb',
+                'target-arrow-color': '#bbb',
+                'target-arrow-shape': 'triangle'
+              }
+            }
+          ],
+          layout: {
+            name: 'cose',
+            animate: true,
+            padding: 50
+          }
+        });
+
+      } catch (error) {
+        console.error("❌ Failed to load resources:", error);
+      }
     }
 
     async function askAI() {
       const question = document.getElementById('question').value;
-      const res = await fetch('/api/ask', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ question })
-      });
-      const data = await res.json();
-      document.getElementById('answer').innerText = data.answer || "No response.";
+      const answerBox = document.getElementById('answer');
+      answerBox.innerText = "⏳ Thinking...";
+
+      try {
+        const res = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+
+        const data = await res.json();
+        answerBox.innerText = data.answer || "No response.";
+      } catch (err) {
+        answerBox.innerText = "❌ Failed to get AI response.";
+        console.error(err);
+      }
     }
 
     fetchResources();
