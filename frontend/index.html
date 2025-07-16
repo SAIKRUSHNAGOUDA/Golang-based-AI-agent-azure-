@@ -9,7 +9,7 @@
       padding: 0;
       height: 100%;
       font-family: Arial, sans-serif;
-      background: #f7f9fc;
+      background: #f8fafc;
     }
 
     #cy {
@@ -19,7 +19,7 @@
     }
 
     #chat-container {
-      padding: 10px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -51,11 +51,11 @@
     #answer {
       background: #fff;
       border: 1px solid #ddd;
-      padding: 10px;
+      padding: 12px;
       border-radius: 4px;
-      min-height: 40px;
-      white-space: pre-wrap;
       font-family: monospace;
+      white-space: pre-wrap;
+      min-height: 40px;
       color: #333;
     }
   </style>
@@ -142,7 +142,8 @@
         });
 
       } catch (error) {
-        console.error("❌ Failed to load resources:", error);
+        document.getElementById('answer').innerText = "❌ Failed to load resource data.";
+        console.error(error);
       }
     }
 
@@ -158,10 +159,16 @@
           body: JSON.stringify({ question })
         });
 
+        if (!res.ok) {
+          const text = await res.text();
+          answerBox.innerText = `❌ Server error: ${text}`;
+          return;
+        }
+
         const data = await res.json();
-        answerBox.innerText = data.answer || "No response.";
+        answerBox.innerText = data.answer || "❌ No response.";
       } catch (err) {
-        answerBox.innerText = "❌ Failed to get AI response.";
+        answerBox.innerText = "❌ Could not connect to AI service.";
         console.error(err);
       }
     }
