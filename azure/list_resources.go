@@ -9,17 +9,17 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 )
 
-// ResourceInfo defines a simple structure for UI or API output
-type ResourceInfo struct {
+// ✅ Resource struct exported for other packages like ai.go
+type Resource struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Location string `json:"location"`
 }
 
-// FetchResources fetches Azure resources and returns structured data
-func FetchResources(subscriptionID string) []ResourceInfo {
+// FetchResources returns a list of Azure resources
+func FetchResources(subscriptionID string) []Resource {
 	ctx := context.Background()
-	var results []ResourceInfo
+	var results []Resource
 
 	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
@@ -40,7 +40,7 @@ func FetchResources(subscriptionID string) []ResourceInfo {
 		}
 
 		for _, res := range page.Value {
-			results = append(results, ResourceInfo{
+			results = append(results, Resource{
 				Name:     safeStr(res.Name),
 				Type:     safeStr(res.Type),
 				Location: safeStr(res.Location),
@@ -51,7 +51,7 @@ func FetchResources(subscriptionID string) []ResourceInfo {
 	return results
 }
 
-// Optional: Keep old CLI printer
+// CLI output for debugging (optional)
 func ListAzureResources(subscriptionID string) {
 	resources := FetchResources(subscriptionID)
 	for _, r := range resources {
@@ -60,7 +60,7 @@ func ListAzureResources(subscriptionID string) {
 	fmt.Printf("🔍 Total Azure Resources in Subscription %s: %d\n", subscriptionID, len(resources))
 }
 
-// Helper to safely dereference pointers
+// Helper to safely dereference *string
 func safeStr(v *string) string {
 	if v == nil {
 		return "<nil>"
