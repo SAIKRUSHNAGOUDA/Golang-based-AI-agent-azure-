@@ -5,36 +5,36 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/SAIKRUSHNAGOUDA/Golang-based-AI-agent-azure/ai"
 	"github.com/SAIKRUSHNAGOUDA/Golang-based-AI-agent-azure/azure"
 )
 
 func main() {
-	_ = godotenv.Load()
+	subscriptionID := "98f3c311-5766-420d-a7d5-7ef36868b7ef"
+
+	// Load resources once for both UI and AI
+	resources := azure.FetchResources(subscriptionID)
 
 	http.HandleFunc("/api/resources", func(w http.ResponseWriter, r *http.Request) {
-		subID := "your-subscription-id" // Replace with your Azure subscription ID
-		resources := azure.FetchResources(subID)
-
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resources)
 	})
 
 	http.HandleFunc("/api/ask", func(w http.ResponseWriter, r *http.Request) {
-		var input struct {
+		var req struct {
 			Question string `json:"question"`
 		}
-		_ = json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
 
-		subID := "your-subscription-id"
-		resources := azure.FetchResources(subID)
-		answer := ai.ProcessQuestion(input.Question, resources)
+		answer := ai.GenerateAIResponse(req.Question, resources)
 
+		resp := map[string]string{"answer": answer}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"answer": answer})
+		json.NewEncoder(w).Encode(resp)
 	})
 
 	// Serve frontend
@@ -42,5 +42,7 @@ func main() {
 	http.Handle("/", fs)
 
 	fmt.Println("🌐 Server running at: http://localhost:8080")
+	fmt.Println("📊 UI available at:   http://localhost:8080/index.html")
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
