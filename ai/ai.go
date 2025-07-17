@@ -4,46 +4,57 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
-	openai "github.com/sashabaranov/go-openai"
 	"github.com/SAIKRUSHNAGOUDA/Golang-based-AI-agent-azure/azure"
+	"github.com/sashabaranov/go-openai"
+	"github.com/joho/godotenv"
 )
 
-func ProcessQuestion(question string, resources []azure.Resource) string {
+func GenerateAIResponse(question string, resources []azure.Resource) string {
+	// Load .env if present
+	_ = godotenv.Load()
+
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		return "❌ Missing OpenAI API key"
+		return "❌ Missing OpenAI API key in environment variables."
 	}
 
 	client := openai.NewClient(apiKey)
 
-	resourceList := ""
-	for _, r := range resources {
-		resourceList += fmt.Sprintf("Name: %s, Type: %s, Location: %s\n", r.Name, r.Type, r.Location)
+	// Build resource summary for prompt context
+	var resourceDetails []string
+	for _, res := range resources {
+		resourceDetails = append(resourceDetails,
+			fmt.Sprintf("- Name: %s | Type: %s | Location: %s", res.Name, res.Type, res.Location))
 	}
+	resourceSummary := strings.Join(resourceDetails, "\n")
 
+	// Construct prompt
 	prompt := fmt.Sprintf(`
-You are a smart Azure assistant. These are the resources:
-
+You are a helpful assistant with access to Azure cloud resource data.
+Here's the list of resources:
 %s
 
-User question: %s
+Answer the following user question based on this data:
+Q: %s
+A:`, resourceSummary, question)
 
-If it matches any resource name/type/location, list them.
-If not, say: ❌ No matching resource found.
-`, resourceList, question)
-
-	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-		Model: openai.GPT3Dot5Turbo,
-		Messages: []openai.ChatCompletionMessage{
-			{Role: "system", Content: "You are a helpful Azure cloud assistant."},
-			{Role: "user", Content: prompt},
+	// Create chat request
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: openai.GPT3Dot5Turbo,
+			Messages: []openai.ChatCompletionMessage{
+				{Role: "system", Content: "You are a cloud assistant that answers based on provided resource data."},
+				{Role: "user", Content: prompt},
+			},
 		},
-	})
+	)
 
 	if err != nil {
-		return "❌ Error from OpenAI: " + err.Error()
+		return fmt.Sprintf("❌ OpenAI API error: %v", err)
 	}
 
-	return resp.Choices[0].Message.Content
+	return strings.TrimSpace(resp.Choices[0].Message.Content)
 }
